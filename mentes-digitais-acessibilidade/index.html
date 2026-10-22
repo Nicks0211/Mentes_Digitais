@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MENTES DIGITAIS — Quiz</title>
+  <link rel="stylesheet" href="CSS/style.css">
+  <link rel="stylesheet" href="CSS/accessibility.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/api.js"></script>
+  <script>requireAuth();</script>
+  <script src="js/accessibility.js" defer></script>
+</head>
+<body>
+  <!--BACKGROUNDS-->
+  <div class="bg-vignette"></div>
+  <div class="bg-scanline"></div>
+  <canvas id="bg-particles"></canvas>
+
+  <!-- MENU DE NAVEGAÇÃO -->
+  <nav class="navbar">
+    <span class="nav-logo">🧠 MENTES DIGITAIS</span>
+    <span id="nav-user" style="font-size:13px;color:#8ab4cc;margin-left:8px;"></span>
+
+    <!-- Links desktop -->
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="navegarPara('startScreen', this)">🏠 Quiz</button>
+      <button class="nav-btn" onclick="navegarPara('simuladoScreen', this)">📋 Simulado</button>
+      <button onclick="window.location.href='home.html'" style="background:transparent;color:#8ab4cc;border:1px solid rgba(138,180,204,0.3);font-size:13px;padding:9px 22px;margin-top:6px;">🏠 Home</button>
+      <button onclick="mdLogout()" style="background:rgba(255,51,85,0.08);color:#ff6680;border:1px solid rgba(255,51,85,0.25);font-size:13px;padding:9px 22px;margin-top:6px;border-radius:25px;">🚪 Sair</button>
+    </div>
+
+    <!-- Hamburger (mobile) -->
+    <button class="nav-hamburger" id="nav-hamburger" onclick="toggleDrawer()" aria-label="Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </nav>
+
+  <!-- Overlay do drawer -->
+  <div class="nav-drawer-overlay" id="nav-drawer-overlay" onclick="closeDrawer()"></div>
+
+  <!-- Drawer lateral mobile -->
+  <div class="nav-drawer" id="nav-drawer">
+    <div id="nav-user-mobile" style="font-size:13px;color:#8ab4cc;"></div>
+    <button class="nav-btn active" id="drawer-btn-quiz" onclick="navegarPara('startScreen', this); closeDrawer();">🏠 Quiz</button>
+    <button class="nav-btn" id="drawer-btn-simulado" onclick="navegarPara('simuladoScreen', this); closeDrawer();">📋 Simulado</button>
+    <button class="nav-drawer-btn" onclick="window.location.href='home.html'">🏠 Home</button>
+  </div>
+
+  <div class="container fade">
+
+    <!-- TELA INICIAL (QUIZ) -->
+    <section id="startScreen">
+      <h2>QUIZ</h2>
+
+      <input id="nome" placeholder="Seu nome" style="width:100%;max-width:420px;">
+
+      <select id="dificuldade" style="width:100%;max-width:420px;">
+        <option value="facil">Fácil</option>
+        <option value="medio">Médio</option>
+        <option value="dificil">Difícil</option>
+      </select>
+
+      <div class="grid">
+        <label class="card"><input type="checkbox" value="matematica"> Matemática</label>
+        <label class="card"><input type="checkbox" value="portugues"> Português</label>
+        <label class="card"><input type="checkbox" value="biologia"> Biologia</label>
+        <label class="card"><input type="checkbox" value="fisica"> Física</label>
+        <label class="card"><input type="checkbox" value="quimica"> Química</label>
+        <label class="card"><input type="checkbox" value="historia"> História</label>
+        <label class="card"><input type="checkbox" value="geografia"> Geografia</label>
+        <label class="card"><input type="checkbox" value="sociologia"> Sociologia</label>
+        <label class="card"><input type="checkbox" value="ingles"> Inglês</label>
+      </div>
+
+      <button onclick="start()">Começar</button>
+
+      <!-- BOTÃO REVISAR ERROS (aparece dinamicamente via JS) -->
+      <button
+        id="btnRevisarErros"
+        onclick="abrirRevisao()"
+        style="display:none;background:rgba(255,140,66,0.12);color:#ff8c42;border:1px solid rgba(255,140,66,0.4);border-radius:25px;font-size:14px;padding:10px 28px;margin-top:4px;cursor:pointer;align-items:center;gap:8px;transition:all .2s;"
+        onmouseover="this.style.background='rgba(255,140,66,0.22)'"
+        onmouseout="this.style.background='rgba(255,140,66,0.12)'"
+      >
+        🔁 Revisar Erros
+      </button>
+
+      <div class="ranking" id="ranking"></div>
+      <button onclick="limparRanking()">Limpar Ranking</button>
+    </section>
+
+    <!-- TELA DO QUIZ -->
+    <section id="quizScreen" style="display:none;">
+      <div id="timer"></div>
+      <div id="contador"></div>
+
+      <div id="progressBar">
+        <div id="progress"></div>
+      </div>
+
+      <h3 id="pergunta"></h3>
+      <div id="respostas"></div>
+      <p id="explicacao"></p>
+
+      <button id="nextBtn" style="display:none;">Próxima</button>
+    </section>
+
+    <!-- TELA FINAL QUIZ -->
+    <section id="endScreen" style="display:none;">
+      <h2>Resultado</h2>
+      <p id="resultado"></p>
+      <button onclick="voltarInicio()">Reiniciar</button>
+    </section>
+
+    <!-- TELA DO SIMULADO -->
+    <section id="simuladoScreen" style="display:none;">
+      <h2>📋 Simulado</h2>
+      <p style="color:#aaa; margin-top:-10px;">Monte seu simulado personalizado</p>
+
+      <input id="simNome" placeholder="Seu nome" style="width:100%;max-width:420px;">
+
+      <div class="sim-config">
+        <label class="sim-label">Quantidade de questões por disciplina:</label>
+        <div class="sim-qtd-row">
+          <button class="qtd-btn" onclick="ajustarQtd(-5)">-5</button>
+          <span id="simQtd">10</span>
+          <button class="qtd-btn" onclick="ajustarQtd(5)">+5</button>
+        </div>
+
+        <label class="sim-label">Dificuldade:</label>
+        <select id="simDificuldade" style="width:100%;max-width:420px;">
+          <option value="facil">Fácil</option>
+          <option value="medio">Médio</option>
+          <option value="dificil">Difícil</option>
+          <option value="mista">Mista (todas)</option>
+        </select>
+
+        <label class="sim-label">Disciplinas:</label>
+        <div class="grid">
+          <label class="card"><input type="checkbox" class="sim-check" value="matematica"> Matemática</label>
+          <label class="card"><input type="checkbox" class="sim-check" value="portugues"> Português</label>
+          <label class="card"><input type="checkbox" class="sim-check" value="biologia"> Biologia</label>
+          <label class="card"><input type="checkbox" class="sim-check" value="fisica"> Física</label>
+          <label class="card"><input type="checkbox" class="sim-check" value="quimica"> Química</label>
+          <label class="card"><input type="checkbox" class="sim-check" value="historia"> História</label>
+          <label class="card"><input type="checkbox" class="sim-check" value="geografia"> Geografia</label>
+          <label class="card"><input type="checkbox" class="sim-check" value="sociologia"> Sociologia</label>
+          <label class="card"><input type="checkbox" class="sim-check" value="ingles"> Inglês</label>
+        </div>
+
+        <div id="simResumo" class="sim-resumo"></div>
+        <button onclick="iniciarSimulado()">▶ Iniciar Simulado</button>
+      </div>
+    </section>
+
+    <!-- TELA DO SIMULADO EM ANDAMENTO -->
+    <section id="simQuizScreen" style="display:none;position:relative;">
+      <button onclick="voltarSimulado()" style="position:absolute;top:16px;left:16px;padding:8px 16px;font-size:13px;margin:0;background:rgba(0,245,255,0.1);color:#00f5ff;border:1px solid rgba(0,245,255,0.35);border-radius:25px;">← Simulado</button>
+      <div class="sim-header">
+        <div id="simTimer" class="sim-timer">⏱ 00:00</div>
+        <div id="simContador" class="sim-contador"></div>
+      </div>
+
+      <div id="progressBar2">
+        <div id="progress2"></div>
+      </div>
+
+      <div id="simDisciplinaTag" class="disciplina-tag"></div>
+      <h3 id="simPergunta"></h3>
+      <div id="simRespostas"></div>
+      <p id="simExplicacao"></p>
+
+      <button id="simNextBtn" style="display:none;">Próxima</button>
+    </section>
+
+    <!-- TELA FINAL DO SIMULADO -->
+    <section id="simEndScreen" style="display:none;">
+      <h2>📊 Resultado do Simulado</h2>
+      <p id="simResultadoGeral"></p>
+      <div id="simResultadoPorDisciplina"></div>
+      <div id="simGabarito"></div>
+      <button onclick="voltarSimulado()">Novo Simulado</button>
+      <button onclick="navegarPara('startScreen', document.querySelector('.nav-btn'))">🏠 Voltar ao Quiz</button>
+    </section>
+
+    <!-- ==========================================
+         TELA DE CONFIGURAÇÃO DA REVISÃO DE ERROS
+    ========================================== -->
+    <section id="revisaoScreen" style="display:none;">
+      <h2>🔁 Revisão de Erros</h2>
+      <p style="color:#aaa;margin-top:-10px;">Pratique as questões que você errou anteriormente</p>
+
+      <input id="revisaoNome" placeholder="Seu nome" style="width:100%;max-width:420px;margin-bottom:20px;">
+
+      <!-- Resumo por disciplina -->
+      <div style="background:rgba(255,140,66,0.07);border:1px solid rgba(255,140,66,0.25);border-radius:14px;padding:20px;margin:10px auto;max-width:480px;text-align:left;">
+        <p style="color:#ff8c42;font-size:13px;font-weight:700;margin:0 0 12px;text-transform:uppercase;letter-spacing:.06em;">
+          📌 Erros salvos por disciplina
+        </p>
+        <div id="revisaoResumoDisc" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <hr style="border-color:rgba(255,140,66,0.2);margin:14px 0;">
+        <p style="margin:0;color:#ccc;font-size:14px;">
+          Total: <strong id="revisaoTotalCount" style="color:#ff8c42;">0</strong> questão(ões)
+        </p>
+      </div>
+
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+        <button onclick="iniciarRevisao()" style="background:rgba(255,140,66,0.15);color:#ff8c42;border:1px solid rgba(255,140,66,0.45);border-radius:25px;padding:11px 32px;font-size:14px;cursor:pointer;">
+          ▶ Iniciar Revisão
+        </button>
+        <button onclick="limparBancoErros()" style="background:rgba(255,51,85,0.08);color:#ff6680;border:1px solid rgba(255,51,85,0.3);border-radius:25px;padding:11px 24px;font-size:13px;cursor:pointer;">
+          🗑 Limpar Erros
+        </button>
+        <button onclick="voltarInicio()" style="background:transparent;color:#8ab4cc;border:1px solid rgba(138,180,204,0.3);border-radius:25px;padding:11px 24px;font-size:13px;cursor:pointer;">
+          ← Voltar
+        </button>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TELA DA REVISÃO EM ANDAMENTO
+    ========================================== -->
+    <section id="revisaoQuizScreen" style="display:none;position:relative;">
+      <button onclick="voltarInicio()" style="position:absolute;top:16px;left:16px;padding:8px 16px;font-size:13px;margin:0;background:rgba(255,140,66,0.1);color:#ff8c42;border:1px solid rgba(255,140,66,0.35);border-radius:25px;">← Sair</button>
+
+      <div style="text-align:right;padding-top:10px;">
+        <span id="revisaoContador" style="font-size:13px;color:#8ab4cc;"></span>
+      </div>
+
+      <div id="progressBarRevisao" style="background:rgba(255,255,255,0.08);border-radius:99px;height:6px;margin:10px 0 20px;overflow:hidden;">
+        <div id="progressRevisao" style="height:100%;background:linear-gradient(90deg,#ff8c42,#ffd700);border-radius:99px;transition:width .4s ease;width:0%;"></div>
+      </div>
+
+      <div id="revisaoDisciplinaTag" class="disciplina-tag" style="background:rgba(255,140,66,0.15);color:#ff8c42;border-color:rgba(255,140,66,0.4);"></div>
+      <h3 id="revisaoPergunta"></h3>
+      <div id="revisaoRespostas"></div>
+      <p id="revisaoExplicacao"></p>
+
+      <button id="revisaoNextBtn" style="display:none;">Próxima</button>
+    </section>
+
+    <!-- ==========================================
+         TELA FINAL DA REVISÃO
+    ========================================== -->
+    <section id="revisaoEndScreen" style="display:none;">
+      <h2>📊 Resultado da Revisão</h2>
+      <p id="revisaoResultado" style="line-height:1.8;"></p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px;">
+        <button onclick="abrirRevisao()" style="background:rgba(255,140,66,0.15);color:#ff8c42;border:1px solid rgba(255,140,66,0.4);border-radius:25px;padding:11px 28px;font-size:14px;cursor:pointer;">
+          🔁 Nova Revisão
+        </button>
+        <button onclick="voltarInicio()">🏠 Voltar ao Quiz</button>
+      </div>
+    </section>
+
+  </div><!-- /.container -->
+
+  <!-- Bancos de questões -->
+  <script src="js/questoes/matematica.js"></script>
+  <script src="js/questoes/portugues.js"></script>
+  <script src="js/questoes/biologia.js"></script>
+  <script src="js/questoes/fisica.js"></script>
+  <script src="js/questoes/quimica.js"></script>
+  <script src="js/questoes/historia.js"></script>
+  <script src="js/questoes/geografia.js"></script>
+  <script src="js/questoes/sociologia.js"></script>
+  <script src="js/questoes/ingles.js"></script>
+
+  <!-- Script principal do quiz -->
+  <script src="js/quiz.js"></script>
+
+  <!-- Partículas de fundo -->
+  <script>
+  (function(){
+    const c = document.getElementById('bg-particles');
+    const ctx = c.getContext('2d');
+    let W, H, stars=[], orbs=[];
+    function resize(){ W=c.width=innerWidth; H=c.height=innerHeight; }
+    resize(); addEventListener('resize', resize);
+    for(let i=0;i<200;i++) stars.push({ x:Math.random(), y:Math.random(), r:Math.random()*1.2+0.2, a:Math.random(), sp:Math.random()*0.004+0.001 });
+    const colors=['rgba(0,245,255,','rgba(255,0,204,','rgba(0,255,136,','rgba(0,140,255,'];
+    for(let i=0;i<6;i++) orbs.push({ x:Math.random(), y:Math.random(), vx:(Math.random()-.5)*0.0003, vy:(Math.random()-.5)*0.0003, r:Math.random()*120+60, color:colors[i%colors.length], a:Math.random()*0.06+0.02 });
+    function draw(){
+      ctx.clearRect(0,0,W,H);
+      stars.forEach(s=>{ s.a+=s.sp; if(s.a>1) s.a=0; const alpha=Math.sin(s.a*Math.PI); ctx.beginPath(); ctx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2); ctx.fillStyle=`rgba(200,240,255,${alpha*0.8})`; ctx.fill(); });
+      orbs.forEach(o=>{ o.x+=o.vx; o.y+=o.vy; if(o.x<0||o.x>1) o.vx*=-1; if(o.y<0||o.y>1) o.vy*=-1; const g=ctx.createRadialGradient(o.x*W,o.y*H,0,o.x*W,o.y*H,o.r); g.addColorStop(0,o.color+o.a+')'); g.addColorStop(1,o.color+'0)'); ctx.beginPath(); ctx.arc(o.x*W,o.y*H,o.r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill(); });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  // Exibe nome do usuário logado na navbar (desktop + mobile)
+  mdShowNavUser();
+  (function(){
+    const u = mdGetUser();
+    const el = document.getElementById('nav-user-mobile');
+    if (el && u.nome) el.textContent = '👤 ' + u.nome;
+  })();
+
+  // ── DRAWER MOBILE ──
+  function toggleDrawer() {
+    const drawer  = document.getElementById('nav-drawer');
+    const overlay = document.getElementById('nav-drawer-overlay');
+    const burger  = document.getElementById('nav-hamburger');
+    const isOpen  = drawer.classList.contains('open');
+    if (isOpen) {
+      drawer.classList.remove('open');
+      overlay.classList.remove('open');
+      burger.classList.remove('open');
+    } else {
+      drawer.classList.add('open');
+      overlay.classList.add('open');
+      burger.classList.add('open');
+    }
+  }
+
+  function closeDrawer() {
+    document.getElementById('nav-drawer').classList.remove('open');
+    document.getElementById('nav-drawer-overlay').classList.remove('open');
+    document.getElementById('nav-hamburger').classList.remove('open');
+  }
+
+  // Fecha drawer ao pressionar ESC
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  // Mantém estado active sincronizado entre desktop e drawer
+  const _origNavegar = typeof navegarPara === 'function' ? navegarPara : null;
+  // (sincronização feita via atributo active nas chamadas do drawer)
+  </script>
+
+  <!-- Estilo inline para o badge de erros e itens de disciplina na revisão -->
+  <style>
+    .erros-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #ff8c42;
+      color: #0a0e1a;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      min-width: 22px;
+      margin-left: 8px;
+    }
+    .revisao-disc-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #ccc;
+      padding: 4px 0;
+    }
+  </style>
+</body>
+</html>
