@@ -84,6 +84,9 @@ Cada arquivo exporta um array `const <disciplina> = [...]` com objetos no format
 ### `css/style.css`
 Estilos globais com design tokens no `:root`. Inclui: navbar, container, botões, cards, barra de progresso, ranking, simulado, animações e responsivo.
 
+### Acessibilidade
+O botão **Acessibilidade**, disponível nas páginas principais, oferece alto contraste, ampliação da página, redução de animações e leitura em voz alta. As opções ficam salvas no navegador. Use **Alt + Shift + A** para abrir o painel pelo teclado. Nas videoaulas do YouTube, ative **Legendas/CC** no menu do player quando houver legendas disponíveis.
+
 ---
 
 ## ✨ Funcionalidades
